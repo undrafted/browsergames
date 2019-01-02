@@ -2,16 +2,67 @@ class Game {
   constructor() {
     this.canvas = document.getElementById("game");
     this.context = this.canvas.getContext("2d");
+    this.context.font = "30px Verdana";
     this.sprites = [];
 
     this.spriteImage = new Image();
     this.spriteImage.src = "flower.png";
 
     this.spriteImage.onload = () => {
-      this.lastRefreshTime = Date.now();
-      this.spawn(); //first spawn
-      this.refresh();
+      this.init();
     };
+  }
+
+  init() {
+    this.score = 0; //set init score to 0 (obviously)
+
+    this.lastRefreshTime = Date.now();
+    this.spawn(); //first spawn
+    this.refresh();
+
+    // depending if touch device or desktop
+    if ("ontouchstart" in window) {
+      this.canvas.addEventListener("touchstart", this.tap.bind(this));
+    } else {
+      this.canvas.addEventListener("mousedown", this.tap.bind(this));
+    }
+  }
+
+  tap(e) {
+    // get mouse position & convert to canvas coordinates
+    const mousePos = this.getMousePos(e);
+    console.log(mousePos);
+
+    for (let sprite of this.sprites) {
+      if (sprite.hitTest(mousePos)) {
+        sprite.kill = true;
+        this.score++;
+      }
+    }
+  }
+
+  getMousePos(e) {
+    // getBoundingClientRect returns the size of an element and its position relative to the viewport
+    const rect = this.canvas.getBoundingClientRect();
+
+    //touch device vs non touch device
+    const clientX = e.targetTouches
+      ? EventTarget.targetTouches[0].pageX
+      : e.clientX;
+
+    const clientY = e.targetTouches
+      ? EventTarget.targetTouches[0].pageY
+      : e.clientY;
+
+    // canvas could be scaled up or down e.g. on phone
+    const canvasScale = this.canvas.width / this.canvas.offsetWidth;
+
+    const loc = {
+      x: (clientX - rect.left) * canvasScale,
+      y: (clientY - rect.top) * canvasScale
+    };
+
+    return loc;
   }
 
   //function to create a new sprite
@@ -69,17 +120,30 @@ class Game {
     for (let sprite of this.sprites) {
       sprite.render();
     }
+
+    this.context.fillText(`Score: ${this.score}`, 150, 30);
   }
 }
 
 class Sprite {
-  constructor({ context, width, height, image, x, y, scale = 1, opacity = 1 }) {
+  constructor({
+    context,
+    width,
+    height,
+    image,
+    x,
+    y,
+    scale = 1,
+    opacity = 1,
+    anchor = { x: 0.5, y: 0.5 }
+  }) {
     this.context = context;
     this.width = width;
     this.height = height;
     this.image = image;
     this.x = x;
     this.y = y;
+    this.anchor = anchor; //this is to define from where the image originates e.g. center expanding
     this.states = [
       {
         mode: "spawn",
@@ -109,6 +173,22 @@ class Sprite {
 
   get state() {
     return this.states[this.stateIndex];
+  }
+
+  //calculating the distance using the pythagorean theorem
+  static distanceBetweenPoints(a, b) {
+    const x = a.x - b.x;
+    const y = a.y - b.y;
+    return Math.sqrt(x * x + y * y);
+  }
+
+  hitTest(mousePos) {
+    const centre = { x: this.x, y: this.y };
+    const radius = (this.width * this.scale) / 2;
+
+    //now test if the mousePos is in the circle
+    const dist = Sprite.distanceBetweenPoints(mousePos, centre);
+    return dist < radius;
   }
 
   update(dt) {
@@ -164,8 +244,10 @@ class Sprite {
       this.height, // we will display full height of image
 
       // these last 4 properties are destination (place on canvas)
-      this.x, // going to be drawn on x axis
-      this.y, // going to be drawn on y axis
+      // these below coordinates are the x and y points (are the top left hand corner) - so we do some calculation to
+      // draw the image properly
+      this.x - this.width * this.scale * this.anchor.x, // going to be drawn on x axis
+      this.y - this.height * this.scale * this.anchor.y, // going to be drawn on y axis
       this.width * this.scale, // width of the sprite canvas
       this.height * this.scale //height of the sprite on canvas
     );
