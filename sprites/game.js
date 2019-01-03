@@ -5,17 +5,33 @@ class Game {
     this.context.font = "30px Verdana";
     this.sprites = [];
 
-    this.spriteImage = new Image();
-    this.spriteImage.src = "flower.png";
+    this.loadJSON("flowers", data => {
+      this.spriteData = JSON.parse(data);
+      this.spriteImage = new Image();
+      this.spriteImage.src = this.spriteData.meta.image;
+      this.spriteImage.onload = () => {
+        this.init();
+      };
+    });
+  }
 
-    this.spriteImage.onload = () => {
-      this.init();
+  loadJSON(json, callback) {
+    const xobj = new XMLHttpRequest();
+    xobj.overrideMimeType("application/json");
+    xobj.open("GET", `${json}.json`, true);
+
+    xobj.onreadystatechange = function() {
+      if (xobj.readyState === 4 && xobj.status === 200) {
+        //required use of an anonymous callback as .open will NOT return
+        // a value but simply returns undefined in asynchronous mode
+        callback(xobj.responseText);
+      }
     };
+    xobj.send(null);
   }
 
   init() {
     this.score = 0; //set init score to 0 (obviously)
-
     this.lastRefreshTime = Date.now();
     this.spawn(); //first spawn
     this.refresh();
@@ -31,7 +47,6 @@ class Game {
   tap(e) {
     // get mouse position & convert to canvas coordinates
     const mousePos = this.getMousePos(e);
-    console.log(mousePos);
 
     for (let sprite of this.sprites) {
       if (sprite.hitTest(mousePos)) {
@@ -67,13 +82,17 @@ class Game {
 
   //function to create a new sprite
   spawn() {
+    // here we take the random flowers to display
+    const index = Math.floor(Math.random() * 5);
+    const frame = this.spriteData.frames[index].frame;
+
     //create a new sprite object
     const sprite = new Sprite({
       context: this.context,
       x: Math.random() * this.canvas.width,
       y: Math.random() * this.canvas.height,
-      width: this.spriteImage.width,
-      height: this.spriteImage.height,
+      index: index,
+      frame: frame,
       image: this.spriteImage
     });
 

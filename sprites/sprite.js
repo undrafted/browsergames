@@ -1,18 +1,18 @@
 class Sprite {
   constructor({
     context,
-    width,
-    height,
-    image,
     x,
     y,
+    index,
+    frame,
+    image,
     scale = 1,
     opacity = 1,
     anchor = { x: 0.5, y: 0.5 }
   }) {
     this.context = context;
-    this.width = width;
-    this.height = height;
+    this.index = index;
+    this.frame = frame;
     this.image = image;
     this.x = x;
     this.y = y;
@@ -57,7 +57,7 @@ class Sprite {
 
   hitTest(mousePos) {
     const centre = { x: this.x, y: this.y };
-    const radius = (this.width * this.scale) / 2;
+    const radius = (this.frame.w * this.scale) / 2;
 
     //now test if the mousePos is in the circle
     const dist = Sprite.distanceBetweenPoints(mousePos, centre);
@@ -111,18 +111,18 @@ class Sprite {
     this.context.drawImage(
       // these first 5 properties are src (referring to the image)
       this.image,
-      0, // x value of image
-      0, // y value of image
-      this.width, // we will display full width of image
-      this.height, // we will display full height of image
+      this.frame.x, // x value of image
+      this.frame.y, // y value of image
+      this.frame.w, // we will display full width of image
+      this.frame.h, // we will display full height of image
 
       // these last 4 properties are destination (place on canvas)
       // these 2 coordinates below are the x and y points which is the top left  corner
       // of the destination canvas at which to place the top-left corner of the source image
-      this.x - this.width * this.scale * this.anchor.x, // going to be drawn on x axis
-      this.y - this.height * this.scale * this.anchor.y, // going to be drawn on y axis
-      this.width * this.scale, // width of the sprite on canvas
-      this.height * this.scale //height of the sprite on canvas
+      this.x - this.frame.w * this.scale * this.anchor.x, // going to be drawn on x axis
+      this.y - this.frame.h * this.scale * this.anchor.y, // going to be drawn on y axis
+      this.frame.w * this.scale, // width of the sprite on canvas
+      this.frame.h * this.scale //height of the sprite on canvas
     );
 
     this.context.globalAlpha = alpha;
